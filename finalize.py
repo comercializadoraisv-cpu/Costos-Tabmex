@@ -2,12 +2,17 @@
 """
 Post-procesa el .xlsm generado por build_nomina.py:
   1) Corrige el content-type a macro-habilitado (evita el aviso de extension).
-  2) Inserta un boton de formulario en la hoja 'Captura' con la macro
+  2) Incrusta el proyecto VBA (xl/vbaProject.bin) con la macro CargarGasto YA
+     dentro del libro, de modo que NO haya que importar nada.
+  3) Inserta un boton de formulario en la hoja 'Captura' con la macro
      CargarGasto asignada (VML / legacyDrawing).
 """
 import zipfile, os, re, shutil
 
 SRC = "Nomina_por_proyecto.xlsm"
+VBA_BIN = "vbaProject.bin"
+CT_VBA = 'application/vnd.ms-office.vbaProject'
+REL_VBA = 'http://schemas.microsoft.com/office/2006/relationships/vbaProject'
 CT_OLD = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml'
 CT_NEW = 'application/vnd.ms-excel.sheet.macroEnabled.main+xml'
 
@@ -41,14 +46,28 @@ def main():
         names = z.namelist()
         data = {n: z.read(n) for n in names}
 
-    # --- 1) content-type macro-habilitado + Default vml ---
+    # --- 1) content-type macro-habilitado + Default vml + Override vbaProject ---
     ct = data["[Content_Types].xml"].decode("utf-8")
     ct = ct.replace(CT_OLD, CT_NEW)
     if 'Extension="vml"' not in ct:
         ct = ct.replace(
             "</Types>",
             '<Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/></Types>')
+    if "vbaProject.bin" not in ct:
+        ct = ct.replace(
+            "</Types>",
+            '<Override PartName="/xl/vbaProject.bin" ContentType="%s"/></Types>' % CT_VBA)
     data["[Content_Types].xml"] = ct.encode("utf-8")
+
+    # --- 1b) incrustar el binario VBA y su relacion en el workbook ---
+    with open(VBA_BIN, "rb") as f:
+        data["xl/vbaProject.bin"] = f.read()
+    wbrels = data["xl/_rels/workbook.xml.rels"].decode("utf-8")
+    if "vbaProject.bin" not in wbrels:
+        rel_vba = ('<Relationship Id="rIdVbaProj" Type="%s" '
+                   'Target="vbaProject.bin"/>' % REL_VBA)
+        wbrels = wbrels.replace("</Relationships>", rel_vba + "</Relationships>")
+        data["xl/_rels/workbook.xml.rels"] = wbrels.encode("utf-8")
 
     # --- localizar el sheetN.xml de 'Captura' ---
     wbxml = data["xl/workbook.xml"].decode("utf-8")

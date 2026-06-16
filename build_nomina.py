@@ -317,9 +317,9 @@ ini["B2"].alignment = center
 
 pasos = [
     "1. Activa las macros: al abrir, si sale la barra amarilla arriba, pulsa 'Habilitar contenido'.",
-    "2. (Solo la 1a vez) Importa la macro: Alt+F11 -> Archivo -> Importar archivo -> CargarGasto.bas.",
+    "2. La macro YA viene incrustada en este libro: no hay que importar nada ni entrar al editor.",
     "3. Ve a la hoja CAPTURA y llena: Fecha, Proyecto, Empleado, Concepto, Sueldo, Bonos, Otras prestaciones.",
-    "4. Ejecuta la macro: Alt+F8 -> CargarGasto -> Ejecutar (o usa el boton si insertaste uno).",
+    "4. Pulsa el boton CARGAR GASTO (o Alt+F8 -> CargarGasto -> Ejecutar).",
     "5. El registro se manda a la hoja del proyecto (la crea si no existe) y al libro _Movimientos.",
     "6. RESUMEN y los totales por proyecto se actualizan solos (formulas SUMIFS).",
     "",

@@ -9,6 +9,11 @@ Attribute VB_Name = "CargarGasto"
 '======================================================================
 Option Explicit
 
+' --- Constantes de Excel como literales (no dependen de la libreria) ---
+Private Const xlUp As Long = -4162
+Private Const xlSheetVisible As Long = -1
+Private Const xlSheetHidden As Long = 0
+
 ' --- Celdas del formulario en la hoja Captura ---
 Private Const CEL_FECHA    As String = "C4"
 Private Const CEL_PROYECTO As String = "C5"
@@ -19,8 +24,8 @@ Private Const CEL_BONOS    As String = "C10"
 Private Const CEL_OTRAS    As String = "C11"
 
 Public Sub CargarGasto()
-    Dim wb As Workbook: Set wb = ThisWorkbook
-    Dim cap As Worksheet
+    Dim wb As Object: Set wb = ThisWorkbook
+    Dim cap As Object
     On Error Resume Next
     Set cap = wb.Worksheets("Captura")
     On Error GoTo 0
@@ -60,7 +65,7 @@ Public Sub CargarGasto()
     Application.EnableEvents = False
 
     ' --- 1) Registrar en el libro maestro _Movimientos ---
-    Dim mov As Worksheet: Set mov = wb.Worksheets("_Movimientos")
+    Dim mov As Object: Set mov = wb.Worksheets("_Movimientos")
     Dim rm As Long
     rm = mov.Cells(mov.Rows.Count, "A").End(xlUp).Row + 1
     If rm < 2 Then rm = 2
@@ -75,7 +80,7 @@ Public Sub CargarGasto()
     mov.Cells(rm, 8).Value = total
 
     ' --- 2) Hoja del proyecto (crear si no existe) ---
-    Dim ws As Worksheet: Set ws = ObtenerHojaProyecto(wb, proyecto)
+    Dim ws As Object: Set ws = ObtenerHojaProyecto(wb, proyecto)
     If ws Is Nothing Then
         Application.EnableEvents = True
         Application.ScreenUpdating = True
@@ -120,9 +125,9 @@ End Sub
 '----------------------------------------------------------------------
 ' Devuelve la hoja del proyecto; si no existe la crea desde _Plantilla.
 '----------------------------------------------------------------------
-Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) As Worksheet
+Private Function ObtenerHojaProyecto(wb As Object, ByVal proyecto As String) As Object
     Dim nombre As String: nombre = NombreHojaValido(proyecto)
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = wb.Worksheets(nombre)
     On Error GoTo 0
@@ -132,7 +137,7 @@ Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) A
     End If
 
     ' Crear copiando la plantilla oculta
-    Dim plant As Worksheet
+    Dim plant As Object
     On Error Resume Next
     Set plant = wb.Worksheets("_Plantilla")
     On Error GoTo 0
@@ -140,7 +145,7 @@ Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) A
 
     plant.Visible = xlSheetVisible
     plant.Copy After:=wb.Worksheets(wb.Worksheets.Count)
-    Dim nueva As Worksheet: Set nueva = wb.Worksheets(wb.Worksheets.Count)
+    Dim nueva As Object: Set nueva = wb.Worksheets(wb.Worksheets.Count)
     nueva.Name = nombre
     nueva.Visible = xlSheetVisible
     nueva.Range("A1").Value = proyecto
@@ -151,8 +156,8 @@ End Function
 '----------------------------------------------------------------------
 ' Agrega el proyecto a Catalogos!A4:A... si aun no esta en la lista.
 '----------------------------------------------------------------------
-Private Sub AgregarProyectoCatalogo(wb As Workbook, ByVal proyecto As String)
-    Dim cat As Worksheet: Set cat = wb.Worksheets("Catalogos")
+Private Sub AgregarProyectoCatalogo(wb As Object, ByVal proyecto As String)
+    Dim cat As Object: Set cat = wb.Worksheets("Catalogos")
     Dim ult As Long, r As Long
     ult = cat.Cells(cat.Rows.Count, "A").End(xlUp).Row
     If ult < 4 Then ult = 3

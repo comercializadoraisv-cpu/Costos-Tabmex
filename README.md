@@ -8,27 +8,31 @@ correspondiente y consolida los totales automáticamente.
 
 | Archivo | Qué es |
 |---|---|
-| `Nomina_por_proyecto.xlsm` | El libro de Excel (macro-habilitado), con un botón **CARGAR GASTO** en la hoja Captura. |
-| `CargarGasto.bas` | El módulo de la macro `CargarGasto`. Se importa una sola vez. |
-| `build_nomina.py` | Script que genera el `.xlsm` (no necesitas tocarlo). |
-| `finalize.py` | Ajusta el `.xlsm` (content-type macro y botón). No necesitas tocarlo. |
+| `Nomina_por_proyecto.xlsm` | El libro de Excel macro-habilitado, **con la macro `CargarGasto` ya incrustada** y un botón **CARGAR GASTO** en la hoja Captura. Ya no hay que importar nada. |
+| `CargarGasto.bas` | Copia legible del código de la macro (referencia / respaldo). El libro ya lo trae adentro. |
+| `build_nomina.py` | Genera el `.xlsm` con openpyxl (no necesitas tocarlo). |
+| `build_vba.py` | Construye el proyecto VBA (`vbaProject.bin`) desde cero según MS-OVBA (no necesitas tocarlo). |
+| `finalize.py` | Incrusta el `vbaProject.bin`, fija el content-type macro y agrega el botón (no necesitas tocarlo). |
 
 ## Cómo descargarlo
 
 1. Arriba, en la lista de archivos de GitHub, haz clic en `Nomina_por_proyecto.xlsm`.
 2. Pulsa el botón **Download raw file** (icono de descarga ⤓, arriba a la derecha).
-3. Repite con `CargarGasto.bas`.
 
-Ambos caen en tu carpeta **Descargas / Downloads**.
+Cae en tu carpeta **Descargas / Downloads**.
 
 ## Puesta en marcha (solo la primera vez)
 
+La macro **ya viene incrustada y activa**; solo tienes que permitir que Excel
+la ejecute:
+
 1. Abre `Nomina_por_proyecto.xlsm`. Si sale la barra amarilla de seguridad,
-   pulsa **Habilitar contenido**.
-2. Importa la macro: `Alt+F11` → **Archivo ▸ Importar archivo…** → elige
-   `CargarGasto.bas` → cierra el editor.
-3. Guarda el libro **conservando el formato `.xlsm`** (si Excel sugiere `.xlsx`,
-   dile que no: ese formato borra las macros).
+   pulsa **Habilitar contenido** (Enable Content). Eso es todo.
+2. Si descargaste el archivo de internet y Excel lo abre en **Vista protegida**
+   o muestra *“Las macros se han deshabilitado”* sin botón para habilitarlas:
+   cierra Excel, haz clic derecho sobre el archivo → **Propiedades** → marca
+   **Desbloquear** (Unblock) abajo → **Aceptar**, y vuelve a abrirlo.
+3. **Ya no necesitas importar `CargarGasto.bas` ni entrar al editor (`Alt+F11`).**
 
 ## Uso diario
 
@@ -37,8 +41,7 @@ Ambos caen en tu carpeta **Descargas / Downloads**.
    vista previa (no es un botón).
 2. Pulsa el botón azul **CARGAR GASTO** de la hoja Captura (o, si prefieres,
    `Alt+F8` → **CargarGasto** → **Ejecutar**). El botón ya trae la macro
-   asignada; solo funciona después de haber importado `CargarGasto.bas` la
-   primera vez.
+   asignada y la macro ya está dentro del libro: funciona desde la primera vez.
 3. El registro se manda a la hoja del proyecto (la crea si no existía) y al
    libro maestro `_Movimientos`. El **Resumen** y los totales por proyecto se
    actualizan solos.
