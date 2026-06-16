@@ -12,7 +12,8 @@ correspondiente y consolida los totales automáticamente.
 | `CargarGasto.bas` | Copia legible del código de la macro (referencia / respaldo). El libro ya lo trae adentro. |
 | `build_nomina.py` | Genera el `.xlsm` con openpyxl (no necesitas tocarlo). |
 | `build_vba.py` | Construye el proyecto VBA (`vbaProject.bin`) desde cero según MS-OVBA (no necesitas tocarlo). |
-| `finalize.py` | Incrusta el `vbaProject.bin`, fija el content-type macro y agrega el botón (no necesitas tocarlo). |
+| `finalize.py` | Incrusta el `vbaProject.bin` y fija el content-type macro (no necesitas tocarlo). |
+| `add_button.py` | Agrega el botón **CARGAR GASTO** con LibreOffice (estructura de control completa) y restituye los nombres definidos (no necesitas tocarlo). |
 
 ## Cómo descargarlo
 
@@ -36,9 +37,9 @@ la ejecute:
 
 ## Uso diario
 
-1. Ve a la hoja **Captura** y llena: Fecha, Proyecto, Empleado, Concepto,
-   Sueldo, Bonos y Otras prestaciones. La celda `C16` muestra el total como
-   vista previa (no es un botón).
+1. Ve a la hoja **Captura** y llena: Fecha, **Quincena** (1ra/2da), Proyecto,
+   Empleado, **Puesto / Cargo**, Concepto, Sueldo, Bonos y Otras prestaciones.
+   La celda `C16` muestra el total como vista previa (no es un botón).
 2. Pulsa el botón azul **CARGAR GASTO** de la hoja Captura (o, si prefieres,
    `Alt+F8` → **CargarGasto** → **Ejecutar**). El botón ya trae la macro
    asignada y la macro ya está dentro del libro: funciona desde la primera vez.
@@ -51,8 +52,9 @@ la ejecute:
 - **Inicio** — guía rápida.
 - **Captura** — formulario de captura.
 - **Resumen** — consolidado por proyecto (fórmulas `SUMIFS`).
-- **Catálogos** — Proyectos, Empleados, Conceptos y el **Factor de carga social
-  patronal (%)**.
+- **Catálogos** — Proyectos, Empleados, **Puestos / Cargos**, Conceptos y el
+  **Factor de carga social patronal (%)**. Las listas desplegables de Captura
+  salen de aquí (la de Quincena es fija: 1ra / 2da).
 - **Tabmex / Contrato voceo / Producción** — una hoja por proyecto.
 - **_Movimientos** (oculta) — libro maestro / auditoría.
 - **_Plantilla** (oculta) — base para crear hojas de proyecto nuevas.

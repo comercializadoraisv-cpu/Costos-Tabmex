@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Genera el libro de Excel macro-habilitado para captura de gastos de nomina por
-proyecto. Estructura faithful a la version entregada al usuario:
-  Inicio, Captura, Resumen, Catalogos, <Proyectos>, _Movimientos, _Plantilla
+proyecto.
+  Hojas: Inicio, Captura, Resumen, Catalogos, <Proyectos>, _Movimientos, _Plantilla
+  Campos de captura: Fecha, Quincena, Proyecto, Empleado, Puesto/Cargo, Concepto,
+                     Sueldo base, Bonos, Otras prestaciones.
 """
 import openpyxl
 from openpyxl import Workbook
@@ -37,7 +39,10 @@ pct = '0.0%'
 
 center = Alignment(horizontal="center", vertical="center")
 left = Alignment(horizontal="left", vertical="center")
+right = Alignment(horizontal="right", vertical="center")
 wrap = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+QUINCENAS = ["1ra quincena", "2da quincena"]
 
 wb = Workbook()
 
@@ -51,7 +56,7 @@ cat.sheet_view.showGridLines = False
 cat["A1"] = "CATALOGOS"
 cat["A1"].font = titulo_font
 cat["A1"].fill = header_fill
-cat.merge_cells("A1:H1")
+cat.merge_cells("A1:K1")
 cat["A1"].alignment = center
 
 # Proyectos
@@ -84,45 +89,52 @@ for i, k in enumerate(conceptos):
     c.border = border
     c.font = normal_font
 
-# Factor de carga social
-cat["G3"] = "Parametros"
+# Puestos / Cargos
+cat["G3"] = "Puestos / Cargos"
 cat["G3"].font = sub_font
 cat["G3"].fill = header_fill
-cat["G4"] = "Factor de carga social patronal (%)"
-cat["G4"].font = label_font
-cat["G4"].alignment = wrap
-cat["H4"] = 0.0
-cat["H4"].number_format = pct
-cat["H4"].fill = input_fill
-cat["H4"].border = border
-cat["H4"].font = normal_font
-cat["G6"] = ("Estimado de IMSS, Infonavit y provisiones (aguinaldo, prima "
+puestos = ["(captura aqui tus puestos)"]
+for i, pu in enumerate(puestos):
+    c = cat.cell(row=4 + i, column=7, value=pu)
+    c.border = border
+    c.font = normal_font
+
+# Parametros: factor de carga social
+cat["I3"] = "Parametros"
+cat["I3"].font = sub_font
+cat["I3"].fill = header_fill
+cat["I4"] = "Factor de carga social patronal (%)"
+cat["I4"].font = label_font
+cat["I4"].alignment = wrap
+cat["J4"] = 0.0
+cat["J4"].number_format = pct
+cat["J4"].fill = input_fill
+cat["J4"].border = border
+cat["J4"].font = normal_font
+cat["I6"] = ("Estimado de IMSS, Infonavit y provisiones (aguinaldo, prima "
              "vacacional). En 0% solo se cuenta lo pagado en mano. Subelo para "
              "reflejar el costo patronal real por proyecto.")
-cat["G6"].font = nota_font
-cat["G6"].alignment = wrap
-cat.merge_cells("G6:H9")
+cat["I6"].font = nota_font
+cat["I6"].alignment = wrap
+cat.merge_cells("I6:J9")
 
-cat.column_dimensions["A"].width = 20
-cat.column_dimensions["B"].width = 3
-cat.column_dimensions["C"].width = 28
-cat.column_dimensions["D"].width = 3
-cat.column_dimensions["E"].width = 24
-cat.column_dimensions["F"].width = 3
-cat.column_dimensions["G"].width = 24
-cat.column_dimensions["H"].width = 14
+anchos = {"A": 20, "B": 3, "C": 28, "D": 3, "E": 24, "F": 3,
+          "G": 26, "H": 3, "I": 24, "J": 14}
+for col, w in anchos.items():
+    cat.column_dimensions[col].width = w
 
 # Rangos con nombre
-wb.defined_names.add(DefinedName("FactorCargaSocial", attr_text="Catalogos!$H$4"))
+wb.defined_names.add(DefinedName("FactorCargaSocial", attr_text="Catalogos!$J$4"))
 wb.defined_names.add(DefinedName("ListaProyectos", attr_text="Catalogos!$A$4:$A$203"))
 wb.defined_names.add(DefinedName("ListaEmpleados", attr_text="Catalogos!$C$4:$C$203"))
 wb.defined_names.add(DefinedName("ListaConceptos", attr_text="Catalogos!$E$4:$E$23"))
+wb.defined_names.add(DefinedName("ListaPuestos", attr_text="Catalogos!$G$4:$G$203"))
 
 # =====================================================================
 # _MOVIMIENTOS  (libro maestro / auditoria)
 # =====================================================================
 mov = wb.create_sheet("_Movimientos")
-mov_headers = ["Fecha", "Proyecto", "Empleado", "Concepto",
+mov_headers = ["Fecha", "Quincena", "Proyecto", "Empleado", "Puesto", "Concepto",
                "Sueldo", "Bonos", "Otras prestaciones", "Total percibido"]
 for j, h in enumerate(mov_headers, start=1):
     c = mov.cell(row=1, column=j, value=h)
@@ -130,7 +142,7 @@ for j, h in enumerate(mov_headers, start=1):
     c.fill = header_fill
     c.alignment = center
     c.border = border
-widths = [12, 18, 24, 22, 14, 14, 16, 16]
+widths = [12, 14, 18, 24, 18, 22, 14, 14, 16, 16]
 for j, w in enumerate(widths, start=1):
     mov.column_dimensions[get_column_letter(j)].width = w
 mov.freeze_panes = "A2"
@@ -143,36 +155,40 @@ def build_project_sheet(ws, nombre):
     ws["A1"] = nombre
     ws["A1"].font = titulo_font
     ws["A1"].fill = header_fill
-    ws.merge_cells("A1:H1")
+    ws.merge_cells("A1:J1")
     ws["A1"].alignment = center
 
     ws["A2"] = "GASTO DE NOMINA POR PROYECTO"
     ws["A2"].font = label_font
-    ws.merge_cells("A2:H2")
+    ws.merge_cells("A2:J2")
 
-    # Totales
-    ws["F3"] = "Total percibido:"
-    ws["F3"].font = label_font
-    ws["F3"].alignment = Alignment(horizontal="right", vertical="center")
-    ws["G3"] = "=SUM(G6:G100000)"
-    ws["G3"].number_format = money
-    ws["G3"].font = Font(bold=True, color=VERDE)
-    ws["F4"] = "Costo total c/carga social:"
-    ws["F4"].font = label_font
-    ws["F4"].alignment = Alignment(horizontal="right", vertical="center")
-    ws["G4"] = "=SUM(H6:H100000)"
-    ws["G4"].number_format = money
-    ws["G4"].font = Font(bold=True, color=VERDE)
+    # Totales (arriba de la tabla)
+    ws.merge_cells("G3:H3")
+    ws["G3"] = "Total percibido:"
+    ws["G3"].font = label_font
+    ws["G3"].alignment = right
+    ws["I3"] = "=SUM(I6:I100000)"
+    ws["I3"].number_format = money
+    ws["I3"].font = Font(bold=True, color=VERDE)
 
-    headers = ["Fecha", "Empleado", "Concepto", "Sueldo", "Bonos",
-               "Otras prestaciones", "Total percibido", "Costo c/carga social"]
+    ws.merge_cells("G4:H4")
+    ws["G4"] = "Costo total c/carga social:"
+    ws["G4"].font = label_font
+    ws["G4"].alignment = right
+    ws["J4"] = "=SUM(J6:J100000)"
+    ws["J4"].number_format = money
+    ws["J4"].font = Font(bold=True, color=VERDE)
+
+    headers = ["Fecha", "Quincena", "Empleado", "Puesto", "Concepto",
+               "Sueldo", "Bonos", "Otras prestaciones",
+               "Total percibido", "Costo c/carga social"]
     for j, h in enumerate(headers, start=1):
         c = ws.cell(row=5, column=j, value=h)
         c.font = sub_font
         c.fill = header_fill
         c.alignment = center
         c.border = border
-    ws_widths = [12, 24, 22, 14, 14, 16, 16, 18]
+    ws_widths = [12, 14, 24, 20, 22, 13, 13, 16, 16, 18]
     for j, w in enumerate(ws_widths, start=1):
         ws.column_dimensions[get_column_letter(j)].width = w
     ws.freeze_panes = "A6"
@@ -188,7 +204,7 @@ for p in PROYECTOS:
 # =====================================================================
 # CAPTURA
 # =====================================================================
-cap = wb.create_sheet("Captura", 0)  # primera posicion despues la movemos
+cap = wb.create_sheet("Captura", 0)
 cap.sheet_view.showGridLines = False
 
 cap["B2"] = "CAPTURA DE GASTO DE NOMINA"
@@ -199,17 +215,19 @@ cap["B2"].alignment = center
 
 campos = [
     (4, "Fecha", "C4", "fecha"),
-    (5, "Proyecto", "C5", "proyecto"),
-    (6, "Empleado", "C6", "empleado"),
-    (7, "Concepto", "C7", "concepto"),
-    (9, "Sueldo base", "C9", "money"),
-    (10, "Bonos", "C10", "money"),
-    (11, "Otras prestaciones", "C11", "money"),
+    (5, "Quincena", "C5", "texto"),
+    (6, "Proyecto", "C6", "texto"),
+    (7, "Empleado", "C7", "texto"),
+    (8, "Puesto / Cargo", "C8", "texto"),
+    (9, "Concepto", "C9", "texto"),
+    (11, "Sueldo base", "C11", "money"),
+    (12, "Bonos", "C12", "money"),
+    (13, "Otras prestaciones", "C13", "money"),
 ]
 for row, etiqueta, celda, tipo in campos:
     lc = cap.cell(row=row, column=2, value=etiqueta)
     lc.font = label_font
-    lc.alignment = Alignment(horizontal="right", vertical="center")
+    lc.alignment = right
     ic = cap[celda]
     ic.fill = input_fill
     ic.border = border
@@ -222,18 +240,18 @@ for row, etiqueta, celda, tipo in campos:
 # Total preview en C16
 cap["B16"] = "TOTAL (vista previa)"
 cap["B16"].font = Font(bold=True, color=AZUL, size=12)
-cap["B16"].alignment = Alignment(horizontal="right", vertical="center")
-cap["C16"] = "=N(C9)+N(C10)+N(C11)"
+cap["B16"].alignment = right
+cap["C16"] = "=N(C11)+N(C12)+N(C13)"
 cap["C16"].number_format = money
 cap["C16"].font = Font(bold=True, color=VERDE, size=12)
 cap["C16"].fill = light_fill
 cap["C16"].border = border
 
-cap["B18"] = ("C16 es solo vista previa del registro; no es un boton. "
-              "Llena los campos y ejecuta la macro CargarGasto (Alt+F8) o el boton.")
-cap["B18"].font = nota_font
-cap["B18"].alignment = wrap
-cap.merge_cells("B18:D20")
+cap["B19"] = ("C16 es solo vista previa del registro; no es un boton. "
+              "Llena los campos y pulsa el boton CARGAR GASTO (o Alt+F8 -> CargarGasto).")
+cap["B19"].font = nota_font
+cap["B19"].alignment = wrap
+cap.merge_cells("B19:D21")
 
 cap.column_dimensions["A"].width = 3
 cap.column_dimensions["B"].width = 22
@@ -241,12 +259,17 @@ cap.column_dimensions["C"].width = 26
 cap.column_dimensions["D"].width = 6
 
 # Validaciones (dropdowns)
+dv_quin = DataValidation(type="list", formula1='"%s"' % ",".join(QUINCENAS),
+                         allow_blank=True)
 dv_proj = DataValidation(type="list", formula1="=ListaProyectos", allow_blank=True)
 dv_emp = DataValidation(type="list", formula1="=ListaEmpleados", allow_blank=True)
+dv_pue = DataValidation(type="list", formula1="=ListaPuestos", allow_blank=True)
 dv_con = DataValidation(type="list", formula1="=ListaConceptos", allow_blank=True)
-cap.add_data_validation(dv_proj); dv_proj.add(cap["C5"])
-cap.add_data_validation(dv_emp); dv_emp.add(cap["C6"])
-cap.add_data_validation(dv_con); dv_con.add(cap["C7"])
+cap.add_data_validation(dv_quin); dv_quin.add(cap["C5"])
+cap.add_data_validation(dv_proj); dv_proj.add(cap["C6"])
+cap.add_data_validation(dv_emp); dv_emp.add(cap["C7"])
+cap.add_data_validation(dv_pue); dv_pue.add(cap["C8"])
+cap.add_data_validation(dv_con); dv_con.add(cap["C9"])
 
 # =====================================================================
 # RESUMEN
@@ -267,34 +290,29 @@ for j, h in enumerate(rh, start=1):
     c.alignment = center
     c.border = border
 
-# Una fila por proyecto del catalogo (hasta 50 filas con formula)
 first = 4
 last = first + 49
 for i in range(50):
     r = first + i
     proj_ref = f"Catalogos!$A${4 + i}"
     res.cell(row=r, column=1, value=f"={proj_ref}").border = border
-    # Total percibido
+    # Total percibido: suma columna J de _Movimientos donde Proyecto (col C) = proyecto
     tp = (f"=IF({proj_ref}=\"\",\"\","
-          f"SUMIFS('_Movimientos'!$H:$H,'_Movimientos'!$B:$B,{proj_ref}))")
+          f"SUMIFS('_Movimientos'!$J:$J,'_Movimientos'!$C:$C,{proj_ref}))")
     c2 = res.cell(row=r, column=2, value=tp)
     c2.number_format = money; c2.border = border
-    # Carga social
     cs = (f"=IF({proj_ref}=\"\",\"\",B{r}*FactorCargaSocial)")
     c3 = res.cell(row=r, column=3, value=cs)
     c3.number_format = money; c3.border = border
-    # Costo total
     ct = (f"=IF({proj_ref}=\"\",\"\",B{r}+C{r})")
     c4 = res.cell(row=r, column=4, value=ct)
     c4.number_format = money; c4.border = border
     c4.font = Font(bold=True)
 
-# Totales generales
 res.cell(row=last + 1, column=1, value="TOTAL GENERAL").font = Font(bold=True, color=AZUL)
 for col in (2, 3, 4):
     L = get_column_letter(col)
-    c = res.cell(row=last + 1, column=col,
-                 value=f"=SUM({L}{first}:{L}{last})")
+    c = res.cell(row=last + 1, column=col, value=f"=SUM({L}{first}:{L}{last})")
     c.number_format = money
     c.font = Font(bold=True, color=VERDE)
     c.fill = light_fill
@@ -318,12 +336,12 @@ ini["B2"].alignment = center
 pasos = [
     "1. Activa las macros: al abrir, si sale la barra amarilla arriba, pulsa 'Habilitar contenido'.",
     "2. La macro YA viene incrustada en este libro: no hay que importar nada ni entrar al editor.",
-    "3. Ve a la hoja CAPTURA y llena: Fecha, Proyecto, Empleado, Concepto, Sueldo, Bonos, Otras prestaciones.",
+    "3. Ve a la hoja CAPTURA y llena: Fecha, Quincena, Proyecto, Empleado, Puesto, Concepto, Sueldo, Bonos, Otras prestaciones.",
     "4. Pulsa el boton CARGAR GASTO (o Alt+F8 -> CargarGasto -> Ejecutar).",
     "5. El registro se manda a la hoja del proyecto (la crea si no existe) y al libro _Movimientos.",
     "6. RESUMEN y los totales por proyecto se actualizan solos (formulas SUMIFS).",
     "",
-    "CATALOGOS: edita aqui tus Proyectos, Empleados, Conceptos y el Factor de carga social patronal (%).",
+    "CATALOGOS: edita aqui tus Proyectos, Empleados, Puestos, Conceptos y el Factor de carga social patronal (%).",
     "Si el factor es 0% solo se cuenta lo pagado en mano; subelo para reflejar el costo patronal real.",
     "",
     "IMPORTANTE: al guardar conserva el formato .xlsm (Excel a veces sugiere .xlsx, que borra las macros).",

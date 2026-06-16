@@ -35,12 +35,14 @@ Private Const xlSheetHidden As Long = 0
 
 ' --- Celdas del formulario en la hoja Captura ---
 Private Const CEL_FECHA    As String = "C4"
-Private Const CEL_PROYECTO As String = "C5"
-Private Const CEL_EMPLEADO As String = "C6"
-Private Const CEL_CONCEPTO As String = "C7"
-Private Const CEL_SUELDO   As String = "C9"
-Private Const CEL_BONOS    As String = "C10"
-Private Const CEL_OTRAS    As String = "C11"
+Private Const CEL_QUINCENA As String = "C5"
+Private Const CEL_PROYECTO As String = "C6"
+Private Const CEL_EMPLEADO As String = "C7"
+Private Const CEL_PUESTO   As String = "C8"
+Private Const CEL_CONCEPTO As String = "C9"
+Private Const CEL_SUELDO   As String = "C11"
+Private Const CEL_BONOS    As String = "C12"
+Private Const CEL_OTRAS    As String = "C13"
 
 Public Sub CargarGasto()
     Dim wb As Object: Set wb = ThisWorkbook
@@ -54,12 +56,15 @@ Public Sub CargarGasto()
     End If
 
     ' --- Leer formulario ---
-    Dim fecha As Variant, proyecto As String, empleado As String, concepto As String
+    Dim fecha As Variant, quincena As String, proyecto As String
+    Dim empleado As String, puesto As String, concepto As String
     Dim sueldo As Double, bonos As Double, otras As Double, total As Double
 
     fecha = cap.Range(CEL_FECHA).Value
+    quincena = Trim$(CStr(cap.Range(CEL_QUINCENA).Value))
     proyecto = Trim$(CStr(cap.Range(CEL_PROYECTO).Value))
     empleado = Trim$(CStr(cap.Range(CEL_EMPLEADO).Value))
+    puesto = Trim$(CStr(cap.Range(CEL_PUESTO).Value))
     concepto = Trim$(CStr(cap.Range(CEL_CONCEPTO).Value))
     sueldo = ToNum(cap.Range(CEL_SUELDO).Value)
     bonos = ToNum(cap.Range(CEL_BONOS).Value)
@@ -90,13 +95,15 @@ Public Sub CargarGasto()
     If rm < 2 Then rm = 2
     mov.Cells(rm, 1).Value = fecha
     mov.Cells(rm, 1).NumberFormat = "dd/mm/yyyy"
-    mov.Cells(rm, 2).Value = proyecto
-    mov.Cells(rm, 3).Value = empleado
-    mov.Cells(rm, 4).Value = concepto
-    mov.Cells(rm, 5).Value = sueldo
-    mov.Cells(rm, 6).Value = bonos
-    mov.Cells(rm, 7).Value = otras
-    mov.Cells(rm, 8).Value = total
+    mov.Cells(rm, 2).Value = quincena
+    mov.Cells(rm, 3).Value = proyecto
+    mov.Cells(rm, 4).Value = empleado
+    mov.Cells(rm, 5).Value = puesto
+    mov.Cells(rm, 6).Value = concepto
+    mov.Cells(rm, 7).Value = sueldo
+    mov.Cells(rm, 8).Value = bonos
+    mov.Cells(rm, 9).Value = otras
+    mov.Cells(rm, 10).Value = total
 
     ' --- 2) Hoja del proyecto (crear si no existe) ---
     Dim ws As Object: Set ws = ObtenerHojaProyecto(wb, proyecto)
@@ -114,22 +121,25 @@ Public Sub CargarGasto()
     rp = rp + 1
     ws.Cells(rp, 1).Value = fecha
     ws.Cells(rp, 1).NumberFormat = "dd/mm/yyyy"
-    ws.Cells(rp, 2).Value = empleado
-    ws.Cells(rp, 3).Value = concepto
-    ws.Cells(rp, 4).Value = sueldo
-    ws.Cells(rp, 5).Value = bonos
-    ws.Cells(rp, 6).Value = otras
-    ws.Cells(rp, 7).Value = total
-    ws.Cells(rp, 7).NumberFormat = "#,##0.00"
-    ws.Cells(rp, 8).Formula = "=G" & rp & "*(1+FactorCargaSocial)"
-    ws.Cells(rp, 8).NumberFormat = "#,##0.00"
+    ws.Cells(rp, 2).Value = quincena
+    ws.Cells(rp, 3).Value = empleado
+    ws.Cells(rp, 4).Value = puesto
+    ws.Cells(rp, 5).Value = concepto
+    ws.Cells(rp, 6).Value = sueldo
+    ws.Cells(rp, 7).Value = bonos
+    ws.Cells(rp, 8).Value = otras
+    ws.Cells(rp, 9).Value = total
+    ws.Cells(rp, 9).NumberFormat = "#,##0.00"
+    ws.Cells(rp, 10).Formula = "=I" & rp & "*(1+FactorCargaSocial)"
+    ws.Cells(rp, 10).NumberFormat = "#,##0.00"
 
     ' --- 4) Asegurar que el proyecto este en el catalogo ---
     AgregarProyectoCatalogo wb, proyecto
 
     ' --- 5) Limpiar formulario ---
-    cap.Range(CEL_PROYECTO & "," & CEL_EMPLEADO & "," & CEL_CONCEPTO & "," & _
-              CEL_SUELDO & "," & CEL_BONOS & "," & CEL_OTRAS).ClearContents
+    cap.Range(CEL_QUINCENA & "," & CEL_PROYECTO & "," & CEL_EMPLEADO & "," & _
+              CEL_PUESTO & "," & CEL_CONCEPTO & "," & CEL_SUELDO & "," & _
+              CEL_BONOS & "," & CEL_OTRAS).ClearContents
     cap.Range(CEL_FECHA).ClearContents
 
     Application.EnableEvents = True
