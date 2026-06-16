@@ -1,4 +1,4 @@
-Attribute VB_Name = "CargarGasto"
+Attribute VB_Name = "modNomina"
 '======================================================================
 '  CargarGasto  -  Captura de gastos de nomina por proyecto
 '----------------------------------------------------------------------

@@ -21,7 +21,8 @@ Pasos:
 import sys, time, zipfile, os, re
 
 SRC = "Nomina_por_proyecto.xlsm"
-MACRO = "CargarGasto"
+MODULE = "modNomina"     # modulo VBA
+SUB = "CargarGasto"      # procedimiento que ejecuta el boton (FmlaMacro)
 BTN_NAME = "btnCargar"
 
 # nombres definidos que hay que restituir (deben coincidir con build_nomina.py)
@@ -90,7 +91,7 @@ def lo_add_button(path):
     sed.EventMethod = "actionPerformed"
     sed.ScriptType = "Script"
     sed.ScriptCode = ("vnd.sun.star.script:VBAProject.%s.%s"
-                      "?language=Basic&location=document" % (MACRO, MACRO))
+                      "?language=Basic&location=document" % (MODULE, SUB))
     forms.registerScriptEvent(idx, sed)
 
     doc.storeToURL(url, (mk("FilterName", "Calc MS Excel 2007 VBA XML"),))
@@ -117,7 +118,7 @@ def repair(path):
         raise RuntimeError("No encontre el vmlDrawing del boton.")
     vml = data[vml_key].decode("utf-8")
     if "FmlaMacro" not in vml:
-        fm = "<x:FmlaMacro>%s</x:FmlaMacro>" % MACRO
+        fm = "<x:FmlaMacro>%s</x:FmlaMacro>" % SUB
         if "</x:Anchor>" in vml:
             vml = vml.replace("</x:Anchor>", "</x:Anchor>" + fm, 1)
         else:

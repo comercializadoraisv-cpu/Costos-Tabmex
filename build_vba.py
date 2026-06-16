@@ -17,7 +17,7 @@ import struct, uuid
 #  Codigo VBA del modulo (endurecido: tipos Object + constantes literales
 #  de Excel, para que compile aunque el host inyecte solo la libreria base)
 # =====================================================================
-VBA_SOURCE = '''Attribute VB_Name = "CargarGasto"
+VBA_SOURCE = '''Attribute VB_Name = "modNomina"
 '======================================================================
 '  CargarGasto  -  Captura de gastos de nomina por proyecto
 '----------------------------------------------------------------------
@@ -225,7 +225,8 @@ Private Function ToNum(ByVal v As Variant) As Double
 End Function
 '''
 
-MODULE_NAME = "CargarGasto"
+MODULE_NAME = "modNomina"     # nombre del MODULO (distinto del Sub CargarGasto)
+SUB_NAME = "CargarGasto"      # nombre del procedimiento que ejecuta el boton
 PROJECT_NAME = "VBAProject"
 
 # =====================================================================
