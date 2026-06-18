@@ -56,13 +56,16 @@ Ambos caen en tu carpeta **Descargas / Downloads**.
 
 - **Inicio** — guía rápida.
 - **Captura** — formulario de captura (con botón **CARGAR GASTO**).
-- **Resumen** — consolidado por proyecto (fórmulas `SUMIFS`). Columnas:
+- **Resumen** — consolidado por proyecto. El **Total percibido** se toma
+  directamente de cada **hoja de proyecto** (columna *Total percibido*), así que
+  si borras una fila en la hoja del proyecto, el Resumen baja solo. Columnas:
   Total percibido · Carga social · **Pagos fijos (pagados)** · Costo total.
 - **Pagos fijos** — cronograma de pagos fijos (ver abajo).
 - **Catálogos** — Proyectos, Empleados, Conceptos, Puestos y el **Factor de
   carga social patronal (%)**.
 - **Tabmex / Contrato voceo / Producción** — una hoja por proyecto.
-- **_Movimientos** (oculta) — libro maestro / auditoría.
+- **_Movimientos** (oculta) — bitácora histórica de lo que carga el botón
+  (solo informativa; el Resumen ya **no** depende de ella).
 - **_Plantilla** (oculta) — base para crear hojas de proyecto nuevas.
 
 ## Hoja "Pagos fijos" (cronograma)

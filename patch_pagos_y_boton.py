@@ -213,10 +213,16 @@ data = [r1, r3]
 for i in range(50):
     r = 4 + i
     cat = 4 + i
+    # Total percibido: se LEE de la hoja del proyecto (col I = Total percibido).
+    # Asi, si borras una fila en la hoja del proyecto, el Resumen baja solo.
+    # INDIRECT arma la referencia 'NombreProyecto'!I6:I100000; IFERROR->0 si la
+    # hoja aun no existe.
+    bf = ('IF(Catalogos!$A$%d="","",IFERROR(SUM(INDIRECT("\'"&amp;'
+          'Catalogos!$A$%d&amp;"\'!I6:I100000")),0))' % (cat, cat))
     data.append(
         '<row r="%d" spans="1:5" x14ac:dyDescent="0.35">' % r
         + '<c r="A%d" s="8" t="str"><f>Catalogos!$A$%d</f></c>' % (r, cat)
-        + '<c r="B%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIFS(_Movimientos!$J:$J,_Movimientos!$C:$C,Catalogos!$A$%d))</f></c>' % (r, cat, cat)
+        + '<c r="B%d" s="9"><f>%s</f></c>' % (r, bf)
         + '<c r="C%d" s="9"><f>IF(Catalogos!$A$%d="","",B%d*FactorCargaSocial)</f></c>' % (r, cat, r)
         + '<c r="D%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIFS(PagosMonto,PagosProyecto,Catalogos!$A$%d,PagosEstatus,"Pagado"))</f></c>' % (r, cat, cat)
         + '<c r="E%d" s="10"><f>IF(Catalogos!$A$%d="","",B%d+C%d+D%d)</f></c>' % (r, cat, r, r, r)
@@ -232,6 +238,15 @@ data.append(
 )
 s3 = re.sub(r"<sheetData>.*</sheetData>", "<sheetData>" + "".join(data) + "</sheetData>", s3, flags=re.S)
 put("xl/worksheets/sheet3.xml", s3)
+
+# --- 4b) _Movimientos (sheet8.xml): borrar filas de prueba (deja encabezado) ---
+# El libro maestro es solo historico; el Resumen ya NO depende de el. Limpiamos
+# las 2 filas de prueba ($30,000 Tabmex y Produccion) que quedaron cargadas.
+s8 = get("xl/worksheets/sheet8.xml")
+s8 = re.sub(r'<dimension ref="[^"]*"/>', '<dimension ref="A1:J1"/>', s8)
+row1 = re.search(r'<row r="1".*?</row>', s8, re.S).group(0)
+s8 = re.sub(r"<sheetData>.*</sheetData>", "<sheetData>" + row1 + "</sheetData>", s8, flags=re.S)
+put("xl/worksheets/sheet8.xml", s8)
 
 # ======================================================================
 # 5) workbook.xml: nueva hoja, nombres definidos, recalculo total
