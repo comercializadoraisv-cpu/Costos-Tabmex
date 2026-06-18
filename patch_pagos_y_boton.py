@@ -60,7 +60,10 @@ dr_head = dr[: dr.index("<mc:AlternateContent")]
 blocks = re.findall(r"<mc:AlternateContent\b.*?</mc:AlternateContent>", dr, re.S)
 keepb = [b for b in blocks if 'id="1025"' in b]
 assert keepb, "No se encontro el anchor de dibujo del boton 1025"
-block = keepb[0].replace('macro="" textlink=""', 'macro="[0]!CargarGasto" textlink=""')
+# El macro debe ser el nombre simple "CargarGasto" (igual que en el VML y en
+# el controlPr, y que el que aparece en Alt+F8). Un prefijo tipo "[0]!" hace
+# que Excel no resuelva la macro al pulsar el boton ("no se puede ejecutar...").
+block = keepb[0].replace('macro="" textlink=""', 'macro="CargarGasto" textlink=""')
 put("xl/drawings/drawing1.xml", dr_head + block + "</xdr:wsDr>")
 
 # --- 1c) sheet2.xml (Captura): dejar solo el <control shapeId=1025> ---
