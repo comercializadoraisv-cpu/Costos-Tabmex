@@ -59,8 +59,10 @@ Ambos caen en tu carpeta **Descargas / Downloads**.
 - **Resumen** — consolidado por proyecto. El **Total percibido** se toma
   directamente de cada **hoja de proyecto** (columna *Total percibido*), así que
   si borras una fila en la hoja del proyecto, el Resumen baja solo. Columnas:
-  Total percibido · Carga social · **Pagos fijos (pagados)** · Costo total.
+  Total percibido · Carga social · **Pagos fijos (pagados)** · **Compras
+  subtotal · Compras IVA · Compras total** · Costo total.
 - **Pagos fijos** — cronograma de pagos fijos (ver abajo).
+- **Compras** — facturas de compra por proyecto (ver abajo).
 - **Catálogos** — Proyectos, Empleados, Conceptos, Puestos y el **Factor de
   carga social patronal (%)**.
 - **Tabmex / Contrato voceo / Producción** — una hoja por proyecto.
@@ -90,6 +92,23 @@ monto se suma al proyecto elegido en la columna **Pagos fijos (pagados)** del
 **`Pendiente`** no afectan el costo todavía (solo aparecen en el cronograma y
 en el "Total programado" de la propia hoja). Todo es por **fórmulas**: no hay
 que pulsar ningún botón ni importar macros nuevas.
+
+## Hoja "Compras" (facturas de compra)
+
+Registra aquí las **facturas de compra** de todos los proyectos. Una fila por
+factura, con: **Fecha · Folio / UUID · Proveedor · RFC · Concepto · Categoría ·
+Proyecto · Subtotal · IVA · Total · Forma de pago · Estatus · Notas**.
+
+Cómo se cargan a los proyectos: eliges el **Proyecto** en la lista y, **en
+cuanto registras la factura** (sin esperar a marcarla pagada), sus importes se
+suman a ese proyecto en el **Resumen**, en las columnas *Compras subtotal*,
+*Compras IVA* y *Compras total*. El **Costo total** del proyecto incluye el
+**Compras total (con IVA)**. Arriba de la hoja se ven los totales de Subtotal,
+IVA y Total. Todo por **fórmulas** (no requiere botones ni macros).
+
+> ¿Acreditas el IVA y prefieres costear el proyecto con el **subtotal** (sin
+> IVA)? Es un cambio de una línea en el Resumen (usar la columna *Compras
+> subtotal* en vez de *Compras total*); pídemelo y lo ajusto.
 
 ## Factor de carga social patronal
 

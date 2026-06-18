@@ -29,6 +29,10 @@ NEW_SHEET_FILE = "xl/worksheets/sheet10.xml"
 NEW_SHEET_RID = "rId15"
 NEW_SHEET_ID = "10"
 
+COMPRAS_FILE = "xl/worksheets/sheet11.xml"
+COMPRAS_RID = "rId16"
+COMPRAS_ID = "11"
+
 # ---------------------------------------------------------------- leer zip
 with zipfile.ZipFile(SRC) as z:
     parts = {n: z.read(n) for n in z.namelist()}
@@ -210,25 +214,106 @@ sheet10 = (
 put(NEW_SHEET_FILE, sheet10)
 
 # ======================================================================
-# 4) RESUMEN (sheet3.xml): nueva columna D "Pagos fijos", Costo total -> E
+# 3b) HOJA "Compras"  (sheet11.xml) - facturas de compra por proyecto
+# ======================================================================
+# Columnas: Fecha | Folio/UUID | Proveedor | RFC | Concepto | Categoria |
+#           Proyecto | Subtotal | IVA | Total | Forma de pago | Estatus | Notas
+NOTA_C = ("Facturas de compra. Elige el Proyecto en la lista: el costo de cada "
+          "factura registrada se carga a ese proyecto en el Resumen (Subtotal, "
+          "IVA y Total).")
+crows = []
+# fila 1: titulo (A1:M1)
+cc = ['<c r="A1" s="%d" t="inlineStr"><is><t>FACTURAS DE COMPRA POR PROYECTO</t></is></c>' % S_TITLE]
+for col in "BCDEFGHIJKLM":
+    cc.append('<c r="%s1" s="%d"/>' % (col, S_TITLE))
+crows.append('<row r="1" spans="1:13" ht="21">%s</row>' % "".join(cc))
+# fila 2: nota (A2:E2) + totales sobre las columnas H, I, J
+crows.append(
+    '<row r="2" spans="1:13">'
+    '<c r="A2" s="%d" t="inlineStr"><is><t>%s</t></is></c>' % (S_NOTE, NOTA_C)
+    + '<c r="B2" s="%d"/><c r="C2" s="%d"/><c r="D2" s="%d"/><c r="E2" s="%d"/>' % (S_NOTE, S_NOTE, S_NOTE, S_NOTE)
+    + '<c r="G2" s="%d" t="inlineStr"><is><t>Totales &#8594;</t></is></c>' % S_LBLR
+    + '<c r="H2" s="%d"><f>SUM(H5:H1000)</f></c>' % S_MONEY_HL
+    + '<c r="I2" s="%d"><f>SUM(I5:I1000)</f></c>' % S_MONEY_HL
+    + '<c r="J2" s="%d"><f>SUM(J5:J1000)</f></c>' % S_MONEY_HL
+    + "</row>"
+)
+# fila 4: encabezados
+cheads = ["Fecha", "Folio / UUID", "Proveedor", "RFC", "Concepto",
+          "Categoria", "Proyecto", "Subtotal", "IVA", "Total",
+          "Forma de pago", "Estatus", "Notas"]
+chc = []
+for j, h in enumerate(cheads):
+    col = chr(ord("A") + j)
+    chc.append('<c r="%s4" s="%d" t="inlineStr"><is><t>%s</t></is></c>' % (col, S_HEAD, h))
+crows.append('<row r="4" spans="1:13">%s</row>' % "".join(chc))
+# filas 5..64 vacias con formato
+ccol_styles = [DATE_XF, S_TXT, S_TXT, S_TXT, S_TXT, S_TXT, S_TXT,
+               S_MONEY, S_MONEY, S_MONEY, S_TXT, S_TXT, S_TXT]
+for r in range(5, 65):
+    cs = []
+    for j, sidx in enumerate(ccol_styles):
+        col = chr(ord("A") + j)
+        cs.append('<c r="%s%d" s="%d"/>' % (col, r, sidx))
+    crows.append('<row r="%d" spans="1:13">%s</row>' % (r, "".join(cs)))
+
+dvc = (
+    '<dataValidations count="4">'
+    '<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="F5:F1000">'
+    '<formula1>"Material,Herramienta,Equipo,Servicio,Combustible,Flete,Renta de equipo,Otro"</formula1></dataValidation>'
+    '<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="G5:G1000">'
+    '<formula1>ListaProyectos</formula1></dataValidation>'
+    '<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="K5:K1000">'
+    '<formula1>"Transferencia,Efectivo,Tarjeta,Cheque,Credito"</formula1></dataValidation>'
+    '<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="L5:L1000">'
+    '<formula1>"Pendiente,Pagada"</formula1></dataValidation>'
+    "</dataValidations>"
+)
+cwidths = [14, 22, 24, 16, 30, 16, 18, 14, 14, 14, 16, 12, 28]
+ccols = "".join(
+    '<col min="%d" max="%d" width="%d" customWidth="1"/>' % (j + 1, j + 1, w)
+    for j, w in enumerate(cwidths)
+)
+sheet11 = (
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+    '<dimension ref="A1:M64"/>'
+    '<sheetViews><sheetView showGridLines="0" workbookViewId="0"/></sheetViews>'
+    '<sheetFormatPr defaultRowHeight="15"/>'
+    "<cols>" + ccols + "</cols>"
+    "<sheetData>" + "".join(crows) + "</sheetData>"
+    '<mergeCells count="2"><mergeCell ref="A1:M1"/><mergeCell ref="A2:E2"/></mergeCells>'
+    + dvc +
+    '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>'
+    "</worksheet>"
+)
+put(COMPRAS_FILE, sheet11)
+
+# ======================================================================
+# 4) RESUMEN (sheet3.xml): Pagos fijos (D) + Compras (E,F,G) + Costo total (H)
 # ======================================================================
 s3 = get("xl/worksheets/sheet3.xml")
-s3 = s3.replace('<dimension ref="A1:D54"/>', '<dimension ref="A1:E54"/>')
+s3 = s3.replace('<dimension ref="A1:D54"/>', '<dimension ref="A1:H54"/>')
 s3 = s3.replace(
     '<cols><col min="1" max="1" width="22" customWidth="1"/><col min="2" max="4" width="18" customWidth="1"/></cols>',
-    '<cols><col min="1" max="1" width="22" customWidth="1"/><col min="2" max="5" width="18" customWidth="1"/></cols>',
+    '<cols><col min="1" max="1" width="22" customWidth="1"/><col min="2" max="8" width="15" customWidth="1"/></cols>',
 )
-s3 = s3.replace('<mergeCell ref="A1:D1"/>', '<mergeCell ref="A1:E1"/>')
+s3 = s3.replace('<mergeCell ref="A1:D1"/>', '<mergeCell ref="A1:H1"/>')
 
-r1 = ('<row r="1" spans="1:5" ht="21" x14ac:dyDescent="0.35">'
+r1 = ('<row r="1" spans="1:8" ht="21" x14ac:dyDescent="0.35">'
       '<c r="A1" s="21" t="s"><v>22</v></c><c r="B1" s="21"/><c r="C1" s="21"/>'
-      '<c r="D1" s="21"/><c r="E1" s="21"/></row>')
-r3 = ('<row r="3" spans="1:5" x14ac:dyDescent="0.35">'
+      '<c r="D1" s="21"/><c r="E1" s="21"/><c r="F1" s="21"/><c r="G1" s="21"/>'
+      '<c r="H1" s="21"/></row>')
+r3 = ('<row r="3" spans="1:8" x14ac:dyDescent="0.35">'
       '<c r="A3" s="7" t="s"><v>13</v></c>'
       '<c r="B3" s="7" t="s"><v>23</v></c>'
       '<c r="C3" s="7" t="s"><v>24</v></c>'
       '<c r="D3" s="7" t="inlineStr"><is><t>Pagos fijos (pagados)</t></is></c>'
-      '<c r="E3" s="7" t="s"><v>25</v></c></row>')
+      '<c r="E3" s="7" t="inlineStr"><is><t>Compras subtotal</t></is></c>'
+      '<c r="F3" s="7" t="inlineStr"><is><t>Compras IVA</t></is></c>'
+      '<c r="G3" s="7" t="inlineStr"><is><t>Compras total</t></is></c>'
+      '<c r="H3" s="7" t="s"><v>25</v></c></row>')
 data = [r1, r3]
 for i in range(50):
     r = 4 + i
@@ -240,21 +325,27 @@ for i in range(50):
     bf = ('IF(Catalogos!$A$%d="","",IFERROR(SUM(INDIRECT("\'"&amp;'
           'Catalogos!$A$%d&amp;"\'!I6:I100000")),0))' % (cat, cat))
     data.append(
-        '<row r="%d" spans="1:5" x14ac:dyDescent="0.35">' % r
+        '<row r="%d" spans="1:8" x14ac:dyDescent="0.35">' % r
         + '<c r="A%d" s="8" t="str"><f>Catalogos!$A$%d</f></c>' % (r, cat)
         + '<c r="B%d" s="9"><f>%s</f></c>' % (r, bf)
         + '<c r="C%d" s="9"><f>IF(Catalogos!$A$%d="","",B%d*FactorCargaSocial)</f></c>' % (r, cat, r)
         + '<c r="D%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIFS(PagosMonto,PagosProyecto,Catalogos!$A$%d,PagosEstatus,"Pagado"))</f></c>' % (r, cat, cat)
-        + '<c r="E%d" s="10"><f>IF(Catalogos!$A$%d="","",B%d+C%d+D%d)</f></c>' % (r, cat, r, r, r)
+        + '<c r="E%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIF(ComprasProyecto,Catalogos!$A$%d,ComprasSubtotal))</f></c>' % (r, cat, cat)
+        + '<c r="F%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIF(ComprasProyecto,Catalogos!$A$%d,ComprasIVA))</f></c>' % (r, cat, cat)
+        + '<c r="G%d" s="9"><f>IF(Catalogos!$A$%d="","",SUMIF(ComprasProyecto,Catalogos!$A$%d,ComprasTotal))</f></c>' % (r, cat, cat)
+        + '<c r="H%d" s="10"><f>IF(Catalogos!$A$%d="","",B%d+C%d+D%d+G%d)</f></c>' % (r, cat, r, r, r, r)
         + "</row>"
     )
 data.append(
-    '<row r="54" spans="1:5" x14ac:dyDescent="0.35">'
+    '<row r="54" spans="1:8" x14ac:dyDescent="0.35">'
     '<c r="A54" s="11" t="s"><v>26</v></c>'
     '<c r="B54" s="12"><f>SUM(B4:B53)</f></c>'
     '<c r="C54" s="12"><f>SUM(C4:C53)</f></c>'
     '<c r="D54" s="12"><f>SUM(D4:D53)</f></c>'
-    '<c r="E54" s="12"><f>SUM(E4:E53)</f></c></row>'
+    '<c r="E54" s="12"><f>SUM(E4:E53)</f></c>'
+    '<c r="F54" s="12"><f>SUM(F4:F53)</f></c>'
+    '<c r="G54" s="12"><f>SUM(G4:G53)</f></c>'
+    '<c r="H54" s="12"><f>SUM(H4:H53)</f></c></row>'
 )
 s3 = re.sub(r"<sheetData>.*</sheetData>", "<sheetData>" + "".join(data) + "</sheetData>", s3, flags=re.S)
 put("xl/worksheets/sheet3.xml", s3)
@@ -275,12 +366,18 @@ wb = get("xl/workbook.xml")
 wb = wb.replace(
     '<sheet name="Resumen" sheetId="3" r:id="rId3"/>',
     '<sheet name="Resumen" sheetId="3" r:id="rId3"/>'
-    '<sheet name="Pagos fijos" sheetId="%s" r:id="%s"/>' % (NEW_SHEET_ID, NEW_SHEET_RID),
+    '<sheet name="Pagos fijos" sheetId="%s" r:id="%s"/>'
+    '<sheet name="Compras" sheetId="%s" r:id="%s"/>'
+    % (NEW_SHEET_ID, NEW_SHEET_RID, COMPRAS_ID, COMPRAS_RID),
 )
 nuevos = (
     "<definedName name=\"PagosProyecto\">'Pagos fijos'!$D$5:$D$1000</definedName>"
     "<definedName name=\"PagosMonto\">'Pagos fijos'!$F$5:$F$1000</definedName>"
     "<definedName name=\"PagosEstatus\">'Pagos fijos'!$G$5:$G$1000</definedName>"
+    "<definedName name=\"ComprasProyecto\">Compras!$G$5:$G$1000</definedName>"
+    "<definedName name=\"ComprasSubtotal\">Compras!$H$5:$H$1000</definedName>"
+    "<definedName name=\"ComprasIVA\">Compras!$I$5:$I$1000</definedName>"
+    "<definedName name=\"ComprasTotal\">Compras!$J$5:$J$1000</definedName>"
 )
 wb = wb.replace("</definedNames>", nuevos + "</definedNames>")
 wb = wb.replace('<calcPr calcId="191029" iterateDelta="1E-4"/>',
@@ -292,8 +389,9 @@ wr = get("xl/_rels/workbook.xml.rels")
 wr = re.sub(r'<Relationship\b[^>]*Id="rId13"[^>]*/>', "", wr)  # calcChain
 wr = wr.replace(
     "</Relationships>",
-    '<Relationship Id="%s" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet10.xml"/></Relationships>'
-    % NEW_SHEET_RID,
+    '<Relationship Id="%s" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet10.xml"/>'
+    '<Relationship Id="%s" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet11.xml"/>'
+    "</Relationships>" % (NEW_SHEET_RID, COMPRAS_RID),
 )
 put("xl/_rels/workbook.xml.rels", wr)
 
@@ -310,7 +408,8 @@ ct = ct.replace(
 )
 ct = ct.replace(
     "</Types>",
-    '<Override PartName="/xl/worksheets/sheet10.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+    '<Override PartName="/xl/worksheets/sheet10.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+    '<Override PartName="/xl/worksheets/sheet11.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
 )
 put("[Content_Types].xml", ct)
 
@@ -322,15 +421,18 @@ parts.pop("xl/calcChain.xml", None)
 # ======================================================================
 app = get("docProps/app.xml")
 app = app.replace("<vt:lpstr>Hojas de cálculo</vt:lpstr></vt:variant><vt:variant><vt:i4>9</vt:i4>",
-                  "<vt:lpstr>Hojas de cálculo</vt:lpstr></vt:variant><vt:variant><vt:i4>10</vt:i4>")
+                  "<vt:lpstr>Hojas de cálculo</vt:lpstr></vt:variant><vt:variant><vt:i4>11</vt:i4>")
 app = app.replace("<vt:lpstr>Rangos con nombre</vt:lpstr></vt:variant><vt:variant><vt:i4>5</vt:i4>",
-                  "<vt:lpstr>Rangos con nombre</vt:lpstr></vt:variant><vt:variant><vt:i4>8</vt:i4>")
-app = app.replace('<vt:vector size="14" baseType="lpstr">', '<vt:vector size="18" baseType="lpstr">')
+                  "<vt:lpstr>Rangos con nombre</vt:lpstr></vt:variant><vt:variant><vt:i4>12</vt:i4>")
+app = app.replace('<vt:vector size="14" baseType="lpstr">', '<vt:vector size="23" baseType="lpstr">')
 app = app.replace("<vt:lpstr>Resumen</vt:lpstr>",
-                  "<vt:lpstr>Resumen</vt:lpstr><vt:lpstr>Pagos fijos</vt:lpstr>")
+                  "<vt:lpstr>Resumen</vt:lpstr><vt:lpstr>Pagos fijos</vt:lpstr>"
+                  "<vt:lpstr>Compras</vt:lpstr>")
 app = app.replace("<vt:lpstr>ListaPuestos</vt:lpstr>",
                   "<vt:lpstr>ListaPuestos</vt:lpstr><vt:lpstr>PagosProyecto</vt:lpstr>"
-                  "<vt:lpstr>PagosMonto</vt:lpstr><vt:lpstr>PagosEstatus</vt:lpstr>")
+                  "<vt:lpstr>PagosMonto</vt:lpstr><vt:lpstr>PagosEstatus</vt:lpstr>"
+                  "<vt:lpstr>ComprasProyecto</vt:lpstr><vt:lpstr>ComprasSubtotal</vt:lpstr>"
+                  "<vt:lpstr>ComprasIVA</vt:lpstr><vt:lpstr>ComprasTotal</vt:lpstr>")
 put("docProps/app.xml", app)
 
 # ---------------------------------------------------------------- escribir
