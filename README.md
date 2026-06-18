@@ -8,10 +8,19 @@ correspondiente y consolida los totales automáticamente.
 
 | Archivo | Qué es |
 |---|---|
-| `Nomina_por_proyecto.xlsm` | El libro de Excel (macro-habilitado), con un botón **CARGAR GASTO** en la hoja Captura. |
-| `CargarGasto.bas` | El módulo de la macro `CargarGasto`. Se importa una sola vez. |
-| `build_nomina.py` | Script que genera el `.xlsm` (no necesitas tocarlo). |
-| `finalize.py` | Ajusta el `.xlsm` (content-type macro y botón). No necesitas tocarlo. |
+| `Nomina_por_proyecto.xlsm` | El libro de Excel (macro-habilitado), con un botón **CARGAR GASTO** en la hoja Captura y la hoja **Pagos fijos**. |
+| `CargarGasto.bas` | El módulo de la macro `CargarGasto` (ya incluida en el libro). |
+| `patch_pagos_y_boton.py` | Script que aplicó la última corrección: arregló el botón y agregó la hoja **Pagos fijos**. No necesitas tocarlo. |
+| `build_nomina.py` | Script original que generó la primera versión del `.xlsm`. Quedó desfasado respecto al libro actual (no incluye Quincena/Puesto ni la hoja Pagos fijos). |
+| `finalize.py` | Ajuste original del `.xlsm` (content-type macro y botón). No necesitas tocarlo. |
+
+## Novedades (jun-2026)
+
+- **Botón CARGAR GASTO arreglado.** En la hoja Captura se habían acumulado
+  4 botones encimados y el que quedaba arriba no tenía macro asignada, por eso
+  el clic no hacía nada. Ahora hay **un solo botón**, con la macro `CargarGasto`.
+- **Nueva hoja `Pagos fijos`** (cronograma de pagos fijos): renta, servicios,
+  impuestos y demás, con **fecha de pago** y asignación a un **proyecto**.
 
 ## Cómo descargarlo
 
@@ -46,13 +55,38 @@ Ambos caen en tu carpeta **Descargas / Downloads**.
 ## Hojas del libro
 
 - **Inicio** — guía rápida.
-- **Captura** — formulario de captura.
-- **Resumen** — consolidado por proyecto (fórmulas `SUMIFS`).
-- **Catálogos** — Proyectos, Empleados, Conceptos y el **Factor de carga social
-  patronal (%)**.
+- **Captura** — formulario de captura (con botón **CARGAR GASTO**).
+- **Resumen** — consolidado por proyecto (fórmulas `SUMIFS`). Columnas:
+  Total percibido · Carga social · **Pagos fijos (pagados)** · Costo total.
+- **Pagos fijos** — cronograma de pagos fijos (ver abajo).
+- **Catálogos** — Proyectos, Empleados, Conceptos, Puestos y el **Factor de
+  carga social patronal (%)**.
 - **Tabmex / Contrato voceo / Producción** — una hoja por proyecto.
 - **_Movimientos** (oculta) — libro maestro / auditoría.
 - **_Plantilla** (oculta) — base para crear hojas de proyecto nuevas.
+
+## Hoja "Pagos fijos" (cronograma)
+
+Registra aquí los gastos fijos recurrentes (renta, luz, agua, internet,
+impuestos, mantenimiento…). Una fila por pago, con estas columnas:
+
+| Columna | Para qué |
+|---|---|
+| **Fecha de pago** | Cuándo se paga / venció. |
+| **Concepto** | Texto libre (p. ej. "Renta oficina", "Luz CFE"). |
+| **Categoría** | Lista: Renta, Servicio, Impuesto, Predial, Mantenimiento, Otro. |
+| **Proyecto** | Lista de proyectos. **A qué proyecto se carga el costo.** |
+| **Periodicidad** | Único, Mensual, Bimestral, Trimestral, Semestral, Anual. |
+| **Monto** | Importe del pago. |
+| **Estatus** | **Pendiente / Pagado.** |
+| **Notas** | Observaciones. |
+
+Cómo se cargan a los proyectos: en cuanto marcas un pago como **`Pagado`**, su
+monto se suma al proyecto elegido en la columna **Pagos fijos (pagados)** del
+**Resumen**, y entra en el **Costo total** de ese proyecto. Los pagos en
+**`Pendiente`** no afectan el costo todavía (solo aparecen en el cronograma y
+en el "Total programado" de la propia hoja). Todo es por **fórmulas**: no hay
+que pulsar ningún botón ni importar macros nuevas.
 
 ## Factor de carga social patronal
 

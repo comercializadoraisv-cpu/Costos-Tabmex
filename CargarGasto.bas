@@ -9,18 +9,25 @@ Attribute VB_Name = "CargarGasto"
 '======================================================================
 Option Explicit
 
+' --- Constantes de Excel como literales (no dependen de la libreria) ---
+Private Const xlUp As Long = -4162
+Private Const xlSheetVisible As Long = -1
+Private Const xlSheetHidden As Long = 0
+
 ' --- Celdas del formulario en la hoja Captura ---
 Private Const CEL_FECHA    As String = "C4"
-Private Const CEL_PROYECTO As String = "C5"
-Private Const CEL_EMPLEADO As String = "C6"
-Private Const CEL_CONCEPTO As String = "C7"
-Private Const CEL_SUELDO   As String = "C9"
-Private Const CEL_BONOS    As String = "C10"
-Private Const CEL_OTRAS    As String = "C11"
+Private Const CEL_QUINCENA As String = "C5"
+Private Const CEL_PROYECTO As String = "C6"
+Private Const CEL_EMPLEADO As String = "C7"
+Private Const CEL_PUESTO   As String = "C8"
+Private Const CEL_CONCEPTO As String = "C9"
+Private Const CEL_SUELDO   As String = "C11"
+Private Const CEL_BONOS    As String = "C12"
+Private Const CEL_OTRAS    As String = "C13"
 
 Public Sub CargarGasto()
-    Dim wb As Workbook: Set wb = ThisWorkbook
-    Dim cap As Worksheet
+    Dim wb As Object: Set wb = ThisWorkbook
+    Dim cap As Object
     On Error Resume Next
     Set cap = wb.Worksheets("Captura")
     On Error GoTo 0
@@ -30,12 +37,15 @@ Public Sub CargarGasto()
     End If
 
     ' --- Leer formulario ---
-    Dim fecha As Variant, proyecto As String, empleado As String, concepto As String
+    Dim fecha As Variant, quincena As String, proyecto As String
+    Dim empleado As String, puesto As String, concepto As String
     Dim sueldo As Double, bonos As Double, otras As Double, total As Double
 
     fecha = cap.Range(CEL_FECHA).Value
+    quincena = Trim$(CStr(cap.Range(CEL_QUINCENA).Value))
     proyecto = Trim$(CStr(cap.Range(CEL_PROYECTO).Value))
     empleado = Trim$(CStr(cap.Range(CEL_EMPLEADO).Value))
+    puesto = Trim$(CStr(cap.Range(CEL_PUESTO).Value))
     concepto = Trim$(CStr(cap.Range(CEL_CONCEPTO).Value))
     sueldo = ToNum(cap.Range(CEL_SUELDO).Value)
     bonos = ToNum(cap.Range(CEL_BONOS).Value)
@@ -60,22 +70,24 @@ Public Sub CargarGasto()
     Application.EnableEvents = False
 
     ' --- 1) Registrar en el libro maestro _Movimientos ---
-    Dim mov As Worksheet: Set mov = wb.Worksheets("_Movimientos")
+    Dim mov As Object: Set mov = wb.Worksheets("_Movimientos")
     Dim rm As Long
     rm = mov.Cells(mov.Rows.Count, "A").End(xlUp).Row + 1
     If rm < 2 Then rm = 2
     mov.Cells(rm, 1).Value = fecha
     mov.Cells(rm, 1).NumberFormat = "dd/mm/yyyy"
-    mov.Cells(rm, 2).Value = proyecto
-    mov.Cells(rm, 3).Value = empleado
-    mov.Cells(rm, 4).Value = concepto
-    mov.Cells(rm, 5).Value = sueldo
-    mov.Cells(rm, 6).Value = bonos
-    mov.Cells(rm, 7).Value = otras
-    mov.Cells(rm, 8).Value = total
+    mov.Cells(rm, 2).Value = quincena
+    mov.Cells(rm, 3).Value = proyecto
+    mov.Cells(rm, 4).Value = empleado
+    mov.Cells(rm, 5).Value = puesto
+    mov.Cells(rm, 6).Value = concepto
+    mov.Cells(rm, 7).Value = sueldo
+    mov.Cells(rm, 8).Value = bonos
+    mov.Cells(rm, 9).Value = otras
+    mov.Cells(rm, 10).Value = total
 
     ' --- 2) Hoja del proyecto (crear si no existe) ---
-    Dim ws As Worksheet: Set ws = ObtenerHojaProyecto(wb, proyecto)
+    Dim ws As Object: Set ws = ObtenerHojaProyecto(wb, proyecto)
     If ws Is Nothing Then
         Application.EnableEvents = True
         Application.ScreenUpdating = True
@@ -90,22 +102,25 @@ Public Sub CargarGasto()
     rp = rp + 1
     ws.Cells(rp, 1).Value = fecha
     ws.Cells(rp, 1).NumberFormat = "dd/mm/yyyy"
-    ws.Cells(rp, 2).Value = empleado
-    ws.Cells(rp, 3).Value = concepto
-    ws.Cells(rp, 4).Value = sueldo
-    ws.Cells(rp, 5).Value = bonos
-    ws.Cells(rp, 6).Value = otras
-    ws.Cells(rp, 7).Value = total
-    ws.Cells(rp, 7).NumberFormat = "#,##0.00"
-    ws.Cells(rp, 8).Formula = "=G" & rp & "*(1+FactorCargaSocial)"
-    ws.Cells(rp, 8).NumberFormat = "#,##0.00"
+    ws.Cells(rp, 2).Value = quincena
+    ws.Cells(rp, 3).Value = empleado
+    ws.Cells(rp, 4).Value = puesto
+    ws.Cells(rp, 5).Value = concepto
+    ws.Cells(rp, 6).Value = sueldo
+    ws.Cells(rp, 7).Value = bonos
+    ws.Cells(rp, 8).Value = otras
+    ws.Cells(rp, 9).Value = total
+    ws.Cells(rp, 9).NumberFormat = "#,##0.00"
+    ws.Cells(rp, 10).Formula = "=I" & rp & "*(1+FactorCargaSocial)"
+    ws.Cells(rp, 10).NumberFormat = "#,##0.00"
 
     ' --- 4) Asegurar que el proyecto este en el catalogo ---
     AgregarProyectoCatalogo wb, proyecto
 
     ' --- 5) Limpiar formulario ---
-    cap.Range(CEL_PROYECTO & "," & CEL_EMPLEADO & "," & CEL_CONCEPTO & "," & _
-              CEL_SUELDO & "," & CEL_BONOS & "," & CEL_OTRAS).ClearContents
+    cap.Range(CEL_QUINCENA & "," & CEL_PROYECTO & "," & CEL_EMPLEADO & "," & _
+              CEL_PUESTO & "," & CEL_CONCEPTO & "," & CEL_SUELDO & "," & _
+              CEL_BONOS & "," & CEL_OTRAS).ClearContents
     cap.Range(CEL_FECHA).ClearContents
 
     Application.EnableEvents = True
@@ -120,9 +135,9 @@ End Sub
 '----------------------------------------------------------------------
 ' Devuelve la hoja del proyecto; si no existe la crea desde _Plantilla.
 '----------------------------------------------------------------------
-Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) As Worksheet
+Private Function ObtenerHojaProyecto(wb As Object, ByVal proyecto As String) As Object
     Dim nombre As String: nombre = NombreHojaValido(proyecto)
-    Dim ws As Worksheet
+    Dim ws As Object
     On Error Resume Next
     Set ws = wb.Worksheets(nombre)
     On Error GoTo 0
@@ -132,7 +147,7 @@ Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) A
     End If
 
     ' Crear copiando la plantilla oculta
-    Dim plant As Worksheet
+    Dim plant As Object
     On Error Resume Next
     Set plant = wb.Worksheets("_Plantilla")
     On Error GoTo 0
@@ -140,7 +155,7 @@ Private Function ObtenerHojaProyecto(wb As Workbook, ByVal proyecto As String) A
 
     plant.Visible = xlSheetVisible
     plant.Copy After:=wb.Worksheets(wb.Worksheets.Count)
-    Dim nueva As Worksheet: Set nueva = wb.Worksheets(wb.Worksheets.Count)
+    Dim nueva As Object: Set nueva = wb.Worksheets(wb.Worksheets.Count)
     nueva.Name = nombre
     nueva.Visible = xlSheetVisible
     nueva.Range("A1").Value = proyecto
@@ -151,8 +166,8 @@ End Function
 '----------------------------------------------------------------------
 ' Agrega el proyecto a Catalogos!A4:A... si aun no esta en la lista.
 '----------------------------------------------------------------------
-Private Sub AgregarProyectoCatalogo(wb As Workbook, ByVal proyecto As String)
-    Dim cat As Worksheet: Set cat = wb.Worksheets("Catalogos")
+Private Sub AgregarProyectoCatalogo(wb As Object, ByVal proyecto As String)
+    Dim cat As Object: Set cat = wb.Worksheets("Catalogos")
     Dim ult As Long, r As Long
     ult = cat.Cells(cat.Rows.Count, "A").End(xlUp).Row
     If ult < 4 Then ult = 3
