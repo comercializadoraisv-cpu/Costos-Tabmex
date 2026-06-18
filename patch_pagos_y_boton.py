@@ -44,46 +44,63 @@ def put(n, s):
 
 # ======================================================================
 # 1) ARREGLAR EL BOTON
+#    Lo reconstruimos COMPLETO como un unico control de formulario "legacy"
+#    (solo VML + legacyDrawing), descartando toda la maquinaria moderna
+#    (drawing1.xml, <controls>, ctrlProps) que venia enredada de varios
+#    intentos. En un form control legacy la macro vive en <x:FmlaMacro> del
+#    VML; ese es el unico binding y es el mas compatible.
 # ======================================================================
 
-# --- 1a) VML: conservar solo la <v:shape> que tiene <x:FmlaMacro> ---
-vml = get("xl/drawings/vmlDrawing1.vml")
-head = vml[: vml.index("<v:shape")]
-shapes = re.findall(r"<v:shape\b.*?</v:shape>", vml, re.S)
-keep = [s for s in shapes if "FmlaMacro" in s]
-assert keep, "No se encontro la shape VML con FmlaMacro"
-put("xl/drawings/vmlDrawing1.vml", head + keep[0] + "</xml>")
+VML_LIMPIO = (
+    '<xml xmlns:v="urn:schemas-microsoft-com:vml" '
+    'xmlns:o="urn:schemas-microsoft-com:office:office" '
+    'xmlns:x="urn:schemas-microsoft-com:office:excel">'
+    '<o:shapelayout v:ext="edit"><o:idmap v:ext="edit" data="1"/></o:shapelayout>'
+    '<v:shapetype id="_x0000_t201" coordsize="21600,21600" o:spt="201" '
+    'path="m,l,21600r21600,l21600,xe"><v:stroke joinstyle="miter"/>'
+    '<v:path shadowok="f" o:extrusionok="f" strokeok="f" fillok="f" o:connecttype="rect"/>'
+    '<o:lock v:ext="edit" shapetype="t"/></v:shapetype>'
+    '<v:shape id="_x0000_s1025" type="#_x0000_t201" '
+    "style='position:absolute;margin-left:16.5pt;margin-top:327pt;width:125.5pt;"
+    "height:23.5pt;z-index:1;mso-wrap-style:tight' o:button=\"t\" "
+    'fillcolor="buttonFace [67]" strokecolor="windowText [64]" o:insetmode="auto">'
+    '<v:fill color2="buttonFace [67]" o:detectmouseclick="t"/>'
+    '<o:lock v:ext="edit" rotation="t"/>'
+    "<v:textbox style='mso-direction-alt:auto' o:singleclick=\"f\">"
+    "<div style='text-align:center'><font face=\"Calibri\" size=\"200\" "
+    'color="auto"><b>CARGAR GASTO</b></font></div></v:textbox>'
+    '<x:ClientData ObjectType="Button">'
+    "<x:Anchor>1, 0, 22, 0, 2, 9, 23, 18</x:Anchor>"
+    "<x:PrintObject>False</x:PrintObject>"
+    "<x:AutoFill>False</x:AutoFill>"
+    "<x:FmlaMacro>CargarGasto</x:FmlaMacro>"
+    "<x:TextHAlign>Center</x:TextHAlign>"
+    "<x:TextVAlign>Center</x:TextVAlign>"
+    "</x:ClientData></v:shape></xml>"
+)
+put("xl/drawings/vmlDrawing1.vml", VML_LIMPIO)
 
-# --- 1b) drawing1.xml: conservar solo el anchor del shape id=1025 ---
-dr = get("xl/drawings/drawing1.xml")
-dr_head = dr[: dr.index("<mc:AlternateContent")]
-blocks = re.findall(r"<mc:AlternateContent\b.*?</mc:AlternateContent>", dr, re.S)
-keepb = [b for b in blocks if 'id="1025"' in b]
-assert keepb, "No se encontro el anchor de dibujo del boton 1025"
-# El macro debe ser el nombre simple "CargarGasto" (igual que en el VML y en
-# el controlPr, y que el que aparece en Alt+F8). Un prefijo tipo "[0]!" hace
-# que Excel no resuelva la macro al pulsar el boton ("no se puede ejecutar...").
-block = keepb[0].replace('macro="" textlink=""', 'macro="CargarGasto" textlink=""')
-put("xl/drawings/drawing1.xml", dr_head + block + "</xdr:wsDr>")
-
-# --- 1c) sheet2.xml (Captura): dejar solo el <control shapeId=1025> ---
+# sheet2.xml: cortar desde <drawing .../> hasta el final y dejar solo el
+# legacyDrawing (apunta al VML). Asi se elimina drawing1.xml y el <controls>.
 s2 = get("xl/worksheets/sheet2.xml")
-ctrls = re.search(r"<controls>(.*)</controls>", s2, re.S).group(1)
-cblocks = re.findall(r"<mc:AlternateContent\b.*?</mc:AlternateContent>", ctrls, re.S)
-keepc = [c for c in cblocks if 'shapeId="1025"' in c]
-assert keepc, "No se encontro el control 1025"
-s2 = re.sub(r"<controls>.*</controls>", "<controls>" + keepc[0] + "</controls>", s2, flags=re.S)
+s2 = re.sub(r'<drawing r:id="[^"]*"/>.*</worksheet>',
+            '<legacyDrawing r:id="rId3"/></worksheet>', s2, flags=re.S)
 put("xl/worksheets/sheet2.xml", s2)
 
-# --- 1d) rels de Captura: quitar ctrlProp2/3/4 (rId5,6,7) ---
-r2 = get("xl/worksheets/_rels/sheet2.xml.rels")
-for rid in ("rId5", "rId6", "rId7"):
-    r2 = re.sub(r'<Relationship\b[^>]*Id="%s"[^>]*/>' % rid, "", r2)
-put("xl/worksheets/_rels/sheet2.xml.rels", r2)
+# rels de Captura: solo printerSettings (rId1) + vmlDrawing (rId3).
+put(
+    "xl/worksheets/_rels/sheet2.xml.rels",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings" Target="../printerSettings/printerSettings1.bin"/>'
+    '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing" Target="../drawings/vmlDrawing1.vml"/>'
+    "</Relationships>",
+)
 
-# --- 1e) borrar ctrlProps sobrantes ---
-for n in ("xl/ctrlProps/ctrlProp2.xml", "xl/ctrlProps/ctrlProp3.xml", "xl/ctrlProps/ctrlProp4.xml"):
-    parts.pop(n, None)
+# borrar drawing1.xml y todos los ctrlProps (ya no se usan)
+for n in list(parts):
+    if n.startswith("xl/ctrlProps/") or n == "xl/drawings/drawing1.xml":
+        parts.pop(n, None)
 
 # ======================================================================
 # 2) ESTILO NUEVO (fecha con borde, sin relleno)  -> indice 28
@@ -284,11 +301,9 @@ put("xl/_rels/workbook.xml.rels", wr)
 # 6) [Content_Types].xml: hoja nueva, quitar ctrlProp2/3/4 y calcChain
 # ======================================================================
 ct = get("[Content_Types].xml")
-for n in (2, 3, 4):
-    ct = ct.replace(
-        '<Override PartName="/xl/ctrlProps/ctrlProp%d.xml" ContentType="application/vnd.ms-excel.controlproperties+xml"/>' % n,
-        "",
-    )
+# quitar overrides de drawing1 y de TODOS los ctrlProps (boton reconstruido)
+ct = re.sub(r'<Override PartName="/xl/drawings/drawing1\.xml"[^>]*/>', "", ct)
+ct = re.sub(r'<Override PartName="/xl/ctrlProps/ctrlProp\d+\.xml"[^>]*/>', "", ct)
 ct = ct.replace(
     '<Override PartName="/xl/calcChain.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.calcChain+xml"/>',
     "",
